@@ -164,6 +164,7 @@ pub fn fill_template<R: Read, W: Write>(
 fn main() -> Result<(), Error> {
     let (escape, map_file) = {
         let mut args = std::env::args();
+        args.next();
         let arg = args.next().ok_or(Error::MissingArgument)?;
         if arg == "--template" || arg == "-t" {
             let escape = args.next().ok_or(Error::MissingArgument)?.parse()?;
