@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "templating-engine"
+name = "tmpl"
 version = "0.1.0"
 dependencies = [
  "serde_yaml 0.8.11 (registry+https://github.com/rust-lang/crates.io-index)",
