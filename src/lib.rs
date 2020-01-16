@@ -165,6 +165,13 @@ pub fn val_is_truthy(val: &Value) -> bool {
 /// rpcuser={{rpcauth.rpcuser}}
 /// rpcpassword={{rpcauth.rpcpassword}}
 /// }}
+/// {{#IF listen
+/// listen=1
+/// bind=0.0.0.0:8333
+/// }}
+/// {{#IFNOT listen
+/// listen=0
+/// }}
 /// {{#FOREACH rpcallowip
 /// rpcallowip={{rpcallowip}}
 /// }}
@@ -180,6 +187,21 @@ pub fn eval(
         let if_var = split.next().ok_or_else(|| Error::ParseError)?.trim();
         let rest = split.next().ok_or_else(|| Error::ParseError)?;
         if get_val_from_config_map(map, if_var)
+            .map(|a| val_is_truthy(&a))
+            .unwrap_or(false)
+        {
+            let mut ret = String::new();
+            TemplatingReader::new(std::io::Cursor::new(rest.as_bytes()), map, escape, unescape)
+                .read_to_string(&mut ret)?;
+            Ok(ret)
+        } else {
+            Ok("".to_owned())
+        }
+    } else if trimmed.starts_with("#IFNOT ") {
+        let mut split = trimmed[4..].splitn(2, "\n");
+        let if_var = split.next().ok_or_else(|| Error::ParseError)?.trim();
+        let rest = split.next().ok_or_else(|| Error::ParseError)?;
+        if !get_val_from_config_map(map, if_var)
             .map(|a| val_is_truthy(&a))
             .unwrap_or(false)
         {
