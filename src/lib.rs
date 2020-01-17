@@ -184,33 +184,116 @@ pub fn eval(
     let trimmed = expr.trim_start();
     if trimmed.starts_with("#IF ") {
         let mut split = trimmed[4..].splitn(2, "\n");
-        let if_var = split.next().ok_or_else(|| Error::ParseError)?.trim();
+        let expr = split.next().ok_or_else(|| Error::ParseError)?.trim();
         let rest = split.next().ok_or_else(|| Error::ParseError)?;
-        if get_val_from_config_map(map, if_var)
-            .map(|a| val_is_truthy(&a))
-            .unwrap_or(false)
-        {
-            let mut ret = String::new();
-            TemplatingReader::new(std::io::Cursor::new(rest.as_bytes()), map, escape, unescape)
-                .read_to_string(&mut ret)?;
-            Ok(ret)
+        if expr.contains("!=") {
+            let mut split = expr.splitn(2, "!=");
+            let if_var = split.next().ok_or_else(|| Error::ParseError)?.trim();
+            let target = split.next().ok_or_else(|| Error::ParseError)?.trim();
+            match get_val_from_config_map(map, if_var) {
+                Some(Value::String(ref s)) => {
+                    if !target.starts_with("\"") || !target.ends_with("\"") {
+                        eprintln!("{}", target);
+                        return Err(Error::ParseError);
+                    }
+                    if format!("{:?}", s) != target {
+                        let mut ret = String::new();
+                        TemplatingReader::new(
+                            std::io::Cursor::new(rest.as_bytes()),
+                            map,
+                            escape,
+                            unescape,
+                        )
+                        .read_to_string(&mut ret)?;
+                        Ok(ret)
+                    } else {
+                        Ok("".to_owned())
+                    }
+                }
+                Some(Value::Number(n)) => {
+                    if format!("{}", n) != target {
+                        let mut ret = String::new();
+                        TemplatingReader::new(
+                            std::io::Cursor::new(rest.as_bytes()),
+                            map,
+                            escape,
+                            unescape,
+                        )
+                        .read_to_string(&mut ret)?;
+                        Ok(ret)
+                    } else {
+                        Ok("".to_owned())
+                    }
+                }
+                _ => Ok("".to_owned()),
+            }
+        } else if expr.contains("=") {
+            let mut split = expr.splitn(2, "=");
+            let if_var = split.next().ok_or_else(|| Error::ParseError)?.trim();
+            let target = split.next().ok_or_else(|| Error::ParseError)?.trim();
+            match get_val_from_config_map(map, if_var) {
+                Some(Value::String(ref s)) => {
+                    if !target.starts_with("\"") || !target.ends_with("\"") {
+                        eprintln!("{}", target);
+                        return Err(Error::ParseError);
+                    }
+                    if format!("{:?}", s) == target {
+                        let mut ret = String::new();
+                        TemplatingReader::new(
+                            std::io::Cursor::new(rest.as_bytes()),
+                            map,
+                            escape,
+                            unescape,
+                        )
+                        .read_to_string(&mut ret)?;
+                        Ok(ret)
+                    } else {
+                        Ok("".to_owned())
+                    }
+                }
+                Some(Value::Number(n)) => {
+                    if format!("{}", n) == target {
+                        let mut ret = String::new();
+                        TemplatingReader::new(
+                            std::io::Cursor::new(rest.as_bytes()),
+                            map,
+                            escape,
+                            unescape,
+                        )
+                        .read_to_string(&mut ret)?;
+                        Ok(ret)
+                    } else {
+                        Ok("".to_owned())
+                    }
+                }
+                _ => Ok("".to_owned()),
+            }
+        } else if expr.starts_with("!") {
+            let if_var = &expr[1..];
+            if !get_val_from_config_map(map, if_var)
+                .map(|a| val_is_truthy(&a))
+                .unwrap_or(false)
+            {
+                let mut ret = String::new();
+                TemplatingReader::new(std::io::Cursor::new(rest.as_bytes()), map, escape, unescape)
+                    .read_to_string(&mut ret)?;
+                Ok(ret)
+            } else {
+                Ok("".to_owned())
+            }
         } else {
-            Ok("".to_owned())
-        }
-    } else if trimmed.starts_with("#IFNOT ") {
-        let mut split = trimmed[7..].splitn(2, "\n");
-        let if_var = split.next().ok_or_else(|| Error::ParseError)?.trim();
-        let rest = split.next().ok_or_else(|| Error::ParseError)?;
-        if !get_val_from_config_map(map, if_var)
-            .map(|a| val_is_truthy(&a))
-            .unwrap_or(false)
-        {
-            let mut ret = String::new();
-            TemplatingReader::new(std::io::Cursor::new(rest.as_bytes()), map, escape, unescape)
-                .read_to_string(&mut ret)?;
-            Ok(ret)
-        } else {
-            Ok("".to_owned())
+            let if_var = expr;
+            if get_val_from_config_map(map, if_var)
+                .map(|a| val_is_truthy(&a))
+                .unwrap_or(false)
+            {
+                let mut ret = String::new();
+                TemplatingReader::new(std::io::Cursor::new(rest.as_bytes()), map, escape, unescape)
+                    .read_to_string(&mut ret)?;
+                Ok(ret)
+            } else {
+                Ok("".to_owned())
+            }
         }
     } else if trimmed.starts_with("#FOREACH ") {
         let mut split = trimmed[9..].splitn(2, "\n");
