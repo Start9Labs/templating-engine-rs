@@ -181,7 +181,7 @@ pub fn eval(
     escape: &EscapePattern,
     unescape: u8,
 ) -> Result<String, Error> {
-    let trimmed = expr.trim();
+    let trimmed = expr.trim_start();
     if trimmed.starts_with("#IF ") {
         let mut split = trimmed[4..].splitn(2, "\n");
         let if_var = split.next().ok_or_else(|| Error::ParseError)?.trim();
@@ -198,7 +198,7 @@ pub fn eval(
             Ok("".to_owned())
         }
     } else if trimmed.starts_with("#IFNOT ") {
-        let mut split = trimmed[4..].splitn(2, "\n");
+        let mut split = trimmed[7..].splitn(2, "\n");
         let if_var = split.next().ok_or_else(|| Error::ParseError)?.trim();
         let rest = split.next().ok_or_else(|| Error::ParseError)?;
         if !get_val_from_config_map(map, if_var)
@@ -306,13 +306,17 @@ where
             self.unescapable = false;
             if byte == &self.escape.0[self.count_start] {
                 self.count_start += 1;
-                to_extend = &[];
+                if self.depth == 0 {
+                    to_extend = &[];
+                }
             } else if self.count_start != 0 {
                 to_extend = &self.escape.0[..self.count_start];
             }
             if self.depth > 0 && byte == &self.escape.1[self.count_end] {
                 self.count_end += 1;
-                to_extend = &[];
+                if self.depth == 1 {
+                    to_extend = &[];
+                }
             } else if self.count_end != 0 {
                 to_extend = &self.escape.1[..self.count_end];
             }
