@@ -1,11 +1,11 @@
-# tmpl
+# tiny-tmpl
 
 ## Installation
 
 - requires [rust](https://rustup.rs)
-- `cargo install tmpl`
+- `cargo install tiny-tmpl`
 
 ## Usage
 ```
-tmpl vars.yaml < file.txt.template > file.txt
+tiny-tmpl vars.yaml < file.txt.template > file.txt
 ```
