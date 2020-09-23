@@ -1,6 +1,6 @@
 [package]
 name = "tiny-tmpl"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Aiden McClelland <aiden@start9.dev>"]
 edition = "2018"
 description = "A command line utility for interpolating templates."

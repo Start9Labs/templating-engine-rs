@@ -379,29 +379,33 @@ where
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let in_bytes = self.inner.read(buf)?;
         for byte in &buf[..in_bytes] {
-            let byte_arr = [*byte];
+            let mut write_byte = true;
+            let byte_arr = [];
             let mut to_extend: &[u8] = &byte_arr;
             if self.unescapable && byte == &self.unescape {
                 self.depth -= 1;
                 self.count_start = 0;
                 to_extend = &*self.escape.0;
+                write_byte = false;
             }
             self.unescapable = false;
             if byte == &self.escape.0[self.count_start] {
                 self.count_start += 1;
                 if self.depth == 0 {
-                    to_extend = &[];
+                    write_byte = false;
                 }
             } else if self.count_start != 0 {
                 to_extend = &self.escape.0[..self.count_start];
+                self.count_start = 0;
             }
             if self.depth > 0 && byte == &self.escape.1[self.count_end] {
                 self.count_end += 1;
                 if self.depth == 1 {
-                    to_extend = &[];
+                    write_byte = false;
                 }
             } else if self.count_end != 0 {
                 to_extend = &self.escape.1[..self.count_end];
+                self.count_end = 0;
             }
             if self.count_start == self.escape.0.len() {
                 self.depth += 1;
@@ -427,8 +431,14 @@ where
             }
             if self.depth == 0 {
                 self.buf.extend(to_extend);
+                if write_byte {
+		    self.buf.push_back(*byte);
+                }
             } else {
                 self.var.extend_from_slice(to_extend);
+                if write_byte {
+                    self.var.push(*byte);
+                }
             }
         }
         let written = std::cmp::min(buf.len(), self.buf.len());
